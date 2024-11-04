@@ -28,7 +28,6 @@ std::string smiles(Molecule& m)
     return {smiles.ptr(), static_cast<std::size_t>(smiles.size())};
 }
 
-
 int main() {
     Molecule mol;
     Array<char> descr;
@@ -36,7 +35,8 @@ int main() {
     for (int v : mol.vertices()) {
         int atom_num = mol.getAtomNumber(v);
         mol.getAtomDescription(v, descr);
-        std::cout << atom_num << std::string(descr.ptr(), descr.size()) << std::endl;
+        // std::cout << atom_num << std::string(descr.ptr(), descr.size()) << std::endl;
+        printf("v: %d %s %d\n", v, Element::toString(atom_num), atom_num);
     }
 
     // loadMolecule(CAFFEINE, mol);
