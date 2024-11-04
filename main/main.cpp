@@ -36,7 +36,7 @@ int main() {
     for (int v : mol.vertices()) {
         int atom_num = mol.getAtomNumber(v);
         mol.getAtomDescription(v, descr);
-        std::cout << atom_num << descr << std::endl;
+        std::cout << atom_num << std::string(descr.ptr(), descr.size()) << std::endl;
     }
 
     // loadMolecule(CAFFEINE, mol);
