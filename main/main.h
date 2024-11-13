@@ -21,9 +21,9 @@
 #define CAFFEINE "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
 #define SULFASALAZINE "C1=CC=NC(=C1)NS(=O)(=O)C2=CC=C(C=C2)N=NC3=CC(=C(C=C3)O)C(=O)O"
 
-namespace indigo
-{
-    static void loadMolecule(const char* buf, Molecule& molecule);
-    static std::string smiles(Molecule& m);
-}
+// namespace indigo
+// {
+//     static void loadMolecule(const char* buf, Molecule& molecule);
+//     static std::string smiles(Molecule& m);
+// }
 

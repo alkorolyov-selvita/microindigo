@@ -89,6 +89,7 @@ namespace indigo
         int getAtomValence(int idx) override;
         int getAtomSubstCount(int idx) override;
         int getAtomRingBondsCount(int idx) override;
+
         int getAtomConnectivity(int idx) override;
 
         int getAtomMaxH(int idx) override;
