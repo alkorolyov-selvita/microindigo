@@ -6,8 +6,9 @@
 #include <string>
 
 #include "base_cpp/output.h"
-#include <molecule/molecule.h>
 #include <base_cpp/scanner.h>
+#include <molecule/molecule.h>
+#include "molecule/elements.h"
 #include <molecule/canonical_smiles_saver.h>
 #include <molecule/molecule_auto_loader.h>
 
@@ -31,19 +32,22 @@ std::string smiles(Molecule& m)
 }
 
 constexpr int ONEHOT_SIZE = 10;
+
 void onehot_encode(int atom_num, std::array<int, ONEHOT_SIZE>& onehot) {
-    int onehot_idx[256] = {9}; // fill with 9 for unknown atom first
+    int map[256] = {9}; // 9 for unknown atom
+
     // define known atoms
-    onehot_idx[6] = 0;  // C
-    onehot_idx[7] = 1;  // N
-    onehot_idx[8] = 2;  // O
-    onehot_idx[15] = 3; // P
-    onehot_idx[16] = 4; // S
-    onehot_idx[9] = 5;  // F
-    onehot_idx[17] = 6; // Cl
-    onehot_idx[35] = 7; // Br
-    onehot_idx[53] = 8; // I
-    int idx = onehot_idx[atom_num];
+    map[ELEM_C] = 0;  // C
+    map[ELEM_N] = 1;  // N
+    map[ELEM_O] = 2;  // O
+    map[ELEM_P] = 3;  // P
+    map[ELEM_S] = 4;  // S
+    map[ELEM_F] = 5;  // F
+    map[ELEM_Cl] = 6; // Cl
+    map[ELEM_Br] = 7; // Br
+    map[ELEM_I] = 8;  // I
+
+    int idx = map[atom_num];
 
     onehot.fill(0);
     onehot[idx] = 1;
@@ -58,31 +62,75 @@ void printarray(std::array<int, N>& onehot) {
     printf("] \n");
 }
 
+
+
 int main() {
     Molecule mol;
     Array<char> descr;
     Array<char> symbol;
-    loadMolecule("C1ON(CC)C1", mol);
+    AromaticityOptions options;
+    bool is_in_ring, is_aromatic, is_hbd, is_hba;
+    int hetero_nei_count, heavy_nei_count;
+
+
     std::array<int, ONEHOT_SIZE> onehot;
 
-    // loadMolecule(CAFFEINE, mol);
+    // loadMolecule("C1ON(CC)C1", mol);
+    loadMolecule(CAFFEINE, mol);
+    mol.aromatize(options);
+
+    std::cout << "Atom Ring Arom Donor OneHot" << std::endl;
+
     for (int v : mol.vertices()) {
         int a = mol.getAtomNumber(v);
-        mol.getAtomSymbol(v, symbol);
-        mol.getAtomDescription(v, descr);
 
+        // mol.getAtomSymbol(v, symbol);
+        // mol.getAtomDescription(v, descr);
         // std::cout << atom_num << std::string(descr.ptr(), descr.size() - 1) << std::endl;
-        onehot_encode(a, onehot);
         // printf("v: %d %s %d\n", v, Element::toString(a), a);
 
+
+
+        onehot_encode(a, onehot);
         bool in_ring = mol.vertexInRing(v);
-        bool is_arom = mol.getAtomAromaticity(v) == ATOM_AROMATIC;
+        bool is_aromatic = mol.getAtomAromaticity(v) == ATOM_AROMATIC;
 
-        printf("Atom    : %s\n", Element::toString(a));
-        printf("In ring : %d\n", in_ring);
-        printf("Aromatic: %d\n", is_arom);
 
+        // HBD SMARTS "[N&!H0&v3,N&!H0&+1&v4,O&H1&+0,S&H1&+0,n&H1&+0]" "2.0.1"
+        int h_count = mol.getAtomTotalH(v);
+        int charge = mol.getAtomCharge(v);
+        int valence = mol.getAtomValence(v);
+
+        bool is_nitrogen_aliphatic_hbd =
+            a == ELEM_N &&
+            h_count != 0 &&
+            (
+                charge == 0 && valence == 3 ||
+                charge == 1 && valence == 4
+            );
+        bool is_oxygen_hbd = a == ELEM_O && h_count == 1 && charge == 0;
+        bool is_sulphure_hbd = a == ELEM_S && h_count == 1 && charge == 0;
+        bool is_nitrogen_aromatic_hbd = a == ELEM_N && is_aromatic && h_count == 1 && charge == 0;
+
+        bool is_donor = is_nitrogen_aliphatic_hbd || is_oxygen_hbd || is_sulphure_hbd || is_nitrogen_aromatic_hbd;
+
+
+        printf("[%s]: %d %d %d ", Element::toString(a), in_ring, is_aromatic, is_donor);
         printarray(onehot);
+
+
+        // const Vertex& vertex = mol.getVertex(v);
+        // int i;
+        // is_in_ring = false;
+        // is_aromatic = false;
+        // for (i = vertex.neiBegin(); i != vertex.neiEnd(); i = vertex.neiNext(i)) {
+        //     if (not is_in_ring & mol.getEdgeTopology(vertex.neiEdge(i)) == TOPOLOGY_RING) {
+        //         is_in_ring = true;
+        //     }
+        //
+        // }
+
+
 
 
     }
