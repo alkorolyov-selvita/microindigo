@@ -68,10 +68,9 @@ int main() {
     Molecule mol;
     Array<char> descr;
     Array<char> symbol;
-    AromaticityOptions options;
+    AromaticityOptions options(AromaticityOptions::GENERIC);
     bool is_in_ring, is_aromatic, is_hbd, is_hba;
     int hetero_nei_count, heavy_nei_count;
-
 
     std::array<int, ONEHOT_SIZE> onehot;
 
