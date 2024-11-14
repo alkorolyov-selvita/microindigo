@@ -36,16 +36,15 @@ constexpr int ONEHOT_SIZE = 10;
 void onehot_encode(int atom_num, std::array<int, ONEHOT_SIZE>& onehot) {
     int map[256] = {9}; // 9 for unknown atom
 
-    // define known atoms
-    map[ELEM_C] = 0;  // C
-    map[ELEM_N] = 1;  // N
-    map[ELEM_O] = 2;  // O
-    map[ELEM_P] = 3;  // P
-    map[ELEM_S] = 4;  // S
-    map[ELEM_F] = 5;  // F
-    map[ELEM_Cl] = 6; // Cl
-    map[ELEM_Br] = 7; // Br
-    map[ELEM_I] = 8;  // I
+    map[ELEM_C] = 0;
+    map[ELEM_N] = 1;
+    map[ELEM_O] = 2;
+    map[ELEM_P] = 3;
+    map[ELEM_S] = 4;
+    map[ELEM_F] = 5;
+    map[ELEM_Cl] = 6;
+    map[ELEM_Br] = 7;
+    map[ELEM_I] = 8;
 
     int idx = map[atom_num];
 
@@ -54,6 +53,7 @@ void onehot_encode(int atom_num, std::array<int, ONEHOT_SIZE>& onehot) {
 }
 
 template <std::size_t N>
+
 void printarray(std::array<int, N>& onehot) {
     printf("[ ");
     for (int i = 0; i < N; i++) {
@@ -62,14 +62,13 @@ void printarray(std::array<int, N>& onehot) {
     printf("] \n");
 }
 
-
-
 int main() {
     Molecule mol;
     Array<char> descr;
     Array<char> symbol;
     AromaticityOptions options(AromaticityOptions::GENERIC);
-    bool is_in_ring, is_aromatic, is_hbd, is_hba;
+
+    bool in_ring, is_aromatic, is_hbd, is_hba;
     int hetero_nei_count, heavy_nei_count;
 
     std::array<int, ONEHOT_SIZE> onehot;
@@ -78,7 +77,7 @@ int main() {
     loadMolecule(CAFFEINE, mol);
     mol.aromatize(options);
 
-    std::cout << "Atom Ring Arom Donor OneHot" << std::endl;
+    std::cout << "Atom Ring HANei HetNei Arom Donor OneHot" << std::endl;
 
     for (int v : mol.vertices()) {
         int a = mol.getAtomNumber(v);
@@ -89,48 +88,46 @@ int main() {
         // printf("v: %d %s %d\n", v, Element::toString(a), a);
 
 
-
         onehot_encode(a, onehot);
-        bool in_ring = mol.vertexInRing(v);
-        bool is_aromatic = mol.getAtomAromaticity(v) == ATOM_AROMATIC;
+        in_ring = mol.vertexInRing(v);
+        is_aromatic = mol.getAtomAromaticity(v) == ATOM_AROMATIC;
 
+        hetero_nei_count = 0;
+        heavy_nei_count = 0;
+
+        const Vertex& vertex = mol.getVertex(v);
+        int i;
+        int idx;
+        int nei;
+//        printf("vertex: %d\n", v);
+        for (i = vertex.neiBegin(); i != vertex.neiEnd(); i = vertex.neiNext(i)) {
+            idx = vertex.neiVertex(i);
+//            printf("  idx, nei: %d %d\n", i, nei);
+            nei = mol.getAtomNumber(idx);
+            if (nei != a) hetero_nei_count ++;
+            if (nei != ELEM_H) heavy_nei_count ++;
+        }
 
         // HBD SMARTS "[N&!H0&v3,N&!H0&+1&v4,O&H1&+0,S&H1&+0,n&H1&+0]" "2.0.1"
         int h_count = mol.getAtomTotalH(v);
         int charge = mol.getAtomCharge(v);
         int valence = mol.getAtomValence(v);
 
-        bool is_nitrogen_aliphatic_hbd =
+        bool nitrogen_aliphatic_donor =
             a == ELEM_N &&
             h_count != 0 &&
             (
                 charge == 0 && valence == 3 ||
                 charge == 1 && valence == 4
             );
-        bool is_oxygen_hbd = a == ELEM_O && h_count == 1 && charge == 0;
-        bool is_sulphure_hbd = a == ELEM_S && h_count == 1 && charge == 0;
-        bool is_nitrogen_aromatic_hbd = a == ELEM_N && is_aromatic && h_count == 1 && charge == 0;
+        bool oxygen_donor = a == ELEM_O && h_count == 1 && charge == 0;
+        bool sulphur_donor = a == ELEM_S && h_count == 1 && charge == 0;
+        bool nitrogen_aromatic_donor = a == ELEM_N && is_aromatic && h_count == 1 && charge == 0;
 
-        bool is_donor = is_nitrogen_aliphatic_hbd || is_oxygen_hbd || is_sulphure_hbd || is_nitrogen_aromatic_hbd;
+        bool is_donor = nitrogen_aliphatic_donor || oxygen_donor || sulphur_donor || nitrogen_aromatic_donor;
 
-
-        printf("[%s]: %d %d %d ", Element::toString(a), in_ring, is_aromatic, is_donor);
+        printf("[%s]: %d %d %d %d %d ", Element::toString(a), in_ring, heavy_nei_count, hetero_nei_count, is_aromatic, is_donor);
         printarray(onehot);
-
-
-        // const Vertex& vertex = mol.getVertex(v);
-        // int i;
-        // is_in_ring = false;
-        // is_aromatic = false;
-        // for (i = vertex.neiBegin(); i != vertex.neiEnd(); i = vertex.neiNext(i)) {
-        //     if (not is_in_ring & mol.getEdgeTopology(vertex.neiEdge(i)) == TOPOLOGY_RING) {
-        //         is_in_ring = true;
-        //     }
-        //
-        // }
-
-
-
 
     }
 
