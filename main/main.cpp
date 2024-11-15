@@ -12,13 +12,16 @@
 #include <molecule/canonical_smiles_saver.h>
 #include <molecule/molecule_auto_loader.h>
 
+#include "molecule/smiles_loader.h"
+
 
 using namespace indigo;
 
 void loadMolecule(const char* buf, Molecule& molecule)
 {
     BufferScanner scanner(buf);
-    MoleculeAutoLoader loader(scanner);
+    // MoleculeAutoLoader loader(scanner);
+    SmilesLoader loader(scanner);
     loader.loadMolecule(molecule);
 }
 
@@ -108,7 +111,11 @@ int main() {
             if (nei != ELEM_H) heavy_nei_count ++;
         }
 
-        // HBD SMARTS "[N&!H0&v3,N&!H0&+1&v4,O&H1&+0,S&H1&+0,n&H1&+0]" "2.0.1"
+        // HBD SMARTS
+        // "N&!H0&v3 N&!H0&+1&v4
+        // O&H1&+0 S&H1&+0
+        // n&H1&+0
+        // ver 2.0.1
         int h_count = mol.getAtomTotalH(v);
         int charge = mol.getAtomCharge(v);
         int valence = mol.getAtomValence(v);
@@ -125,6 +132,28 @@ int main() {
         bool nitrogen_aromatic_donor = a == ELEM_N && is_aromatic && h_count == 1 && charge == 0;
 
         bool is_donor = nitrogen_aliphatic_donor || oxygen_donor || sulphur_donor || nitrogen_aromatic_donor;
+
+
+        // HBA SMARTS
+        // $([O,S;H1;v2]-[!$(*=[O,N,P,S])])
+        // $([O,S;H0;v2]) $([O,S;-])
+        // $([N;v3;!$(N-*=!@[O,N,P,S])])
+        // $([nH0,o,s;+0])
+        // ver 2.0.1
+        bool hba_conditions[4] = {false};
+
+        // $([O,S;H1;v2]-[!$(*=[O,N,P,S])])
+        hba_conditions[0] = (a == ELEM_O || a == ELEM_S) && h_count == 1 && valence == 2;
+        // check nei
+        bool nei_condition = false;
+        for (i = vertex.neiBegin(); i != vertex.neiEnd(); i = vertex.neiNext(i)) {
+            idx = vertex.neiVertex(i);
+            nei = mol.getAtomNumber(idx);
+
+        }
+
+
+
 
         printf("[%s]: %d %d %d %d %d ", Element::toString(a), in_ring, heavy_nei_count, hetero_nei_count, is_aromatic, is_donor);
         printarray(onehot);
